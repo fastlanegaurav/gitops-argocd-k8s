@@ -1,0 +1,130 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: backend-dev
+  namespace: argocd
+  labels:
+    app: backend
+    environment: dev
+  annotations:
+    notifications.argoproj.io/subscribe.on-sync-failed.slack: devops-alerts
+    notifications.argoproj.io/subscribe.on-health-degraded.slack: devops-alerts
+spec:
+  project: gitops-project
+
+  source:
+    repoURL: https://github.com/fastlanegaurav/gitops-argocd-k8s.git
+    targetRevision: HEAD
+    path: helm/microservices
+    helm:
+      releaseName: backend-dev
+      valueFiles:
+        - values.yaml
+        - values-dev.yaml
+      parameters:
+        - name: image.repository
+          value: fastlanegaurav/backend
+        - name: service.name
+          value: backend
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: dev
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+    retry:
+      limit: 3
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 2m
+
+  revisionHistoryLimit: 5
+
+  health:
+    failFastIfDeploymentUnhealthy: true
+
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: backend-staging
+  namespace: argocd
+  labels:
+    app: backend
+    environment: staging
+spec:
+  project: gitops-project
+
+  source:
+    repoURL: https://github.com/fastlanegaurav/gitops-argocd-k8s.git
+    targetRevision: HEAD
+    path: helm/microservices
+    helm:
+      releaseName: backend-staging
+      valueFiles:
+        - values.yaml
+        - values-staging.yaml
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: staging
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 3
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 2m
+
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: backend-prod
+  namespace: argocd
+  labels:
+    app: backend
+    environment: production
+spec:
+  project: gitops-project
+
+  source:
+    repoURL: https://github.com/fastlanegaurav/gitops-argocd-k8s.git
+    targetRevision: HEAD
+    path: helm/microservices
+    helm:
+      releaseName: backend-prod
+      valueFiles:
+        - values.yaml
+        - values-prod.yaml
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: production
+
+  # Production: manual sync gate (no automated)
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true
+      - PruneLast=true
+    retry:
+      limit: 2
+      backoff:
+        duration: 30s
+        factor: 2
+        maxDuration: 5m
+
+  revisionHistoryLimit: 20

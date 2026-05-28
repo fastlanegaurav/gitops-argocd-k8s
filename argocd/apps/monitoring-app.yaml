@@ -1,0 +1,31 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: monitoring
+  namespace: argocd
+  labels:
+    app: monitoring
+    environment: all
+spec:
+  project: gitops-project
+  source:
+    repoURL: https://github.com/fastlanegaurav/gitops-argocd-k8s.git
+    targetRevision: HEAD
+    path: helm/monitoring
+    helm:
+      releaseName: monitoring
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 5m

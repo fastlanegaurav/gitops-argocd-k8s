@@ -1,0 +1,98 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: gitops-project
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  description: "Production GitOps project — microservices platform managed by ArgoCD"
+
+  sourceRepos:
+    - https://github.com/fastlanegaurav/gitops-argocd-k8s.git
+    - https://charts.helm.sh/stable
+    - https://prometheus-community.github.io/helm-charts
+    - https://grafana.github.io/helm-charts
+
+  destinations:
+    - namespace: dev
+      server: https://kubernetes.default.svc
+    - namespace: staging
+      server: https://kubernetes.default.svc
+    - namespace: production
+      server: https://kubernetes.default.svc
+    - namespace: monitoring
+      server: https://kubernetes.default.svc
+    - namespace: argocd
+      server: https://kubernetes.default.svc
+
+  clusterResourceWhitelist:
+    - group: ""
+      kind: Namespace
+    - group: "rbac.authorization.k8s.io"
+      kind: ClusterRole
+    - group: "rbac.authorization.k8s.io"
+      kind: ClusterRoleBinding
+    - group: "networking.k8s.io"
+      kind: IngressClass
+
+  namespaceResourceWhitelist:
+    - group: "apps"
+      kind: Deployment
+    - group: "apps"
+      kind: ReplicaSet
+    - group: ""
+      kind: Service
+    - group: ""
+      kind: ConfigMap
+    - group: ""
+      kind: ServiceAccount
+    - group: "networking.k8s.io"
+      kind: Ingress
+    - group: "autoscaling"
+      kind: HorizontalPodAutoscaler
+    - group: "policy"
+      kind: PodDisruptionBudget
+    - group: "monitoring.coreos.com"
+      kind: ServiceMonitor
+
+  roles:
+    - name: developer
+      description: "Read-only access for developers"
+      policies:
+        - p, proj:gitops-project:developer, applications, get, gitops-project/*, allow
+        - p, proj:gitops-project:developer, applications, sync, gitops-project/dev-*, allow
+      groups:
+        - developers
+
+    - name: lead-engineer
+      description: "Full access for senior engineers"
+      policies:
+        - p, proj:gitops-project:lead-engineer, applications, *, gitops-project/*, allow
+      groups:
+        - lead-engineers
+
+    - name: production-deployer
+      description: "Production deployment gate"
+      policies:
+        - p, proj:gitops-project:production-deployer, applications, sync, gitops-project/prod-*, allow
+      groups:
+        - release-managers
+
+  syncWindows:
+    - kind: allow
+      schedule: "0 8 * * 1-5"
+      duration: 8h
+      applications:
+        - "prod-*"
+      namespaces:
+        - production
+      manualSync: true
+
+    - kind: deny
+      schedule: "0 18 * * 5"
+      duration: 60h
+      applications:
+        - "prod-*"
+      namespaces:
+        - production

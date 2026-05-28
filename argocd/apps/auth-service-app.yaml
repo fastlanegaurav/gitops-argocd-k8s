@@ -1,0 +1,74 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: auth-service-dev
+  namespace: argocd
+  labels:
+    app: auth-service
+    environment: dev
+spec:
+  project: gitops-project
+  source:
+    repoURL: https://github.com/fastlanegaurav/gitops-argocd-k8s.git
+    targetRevision: HEAD
+    path: helm/microservices
+    helm:
+      releaseName: auth-service-dev
+      valueFiles:
+        - values.yaml
+        - values-dev.yaml
+      parameters:
+        - name: image.repository
+          value: fastlanegaurav/auth-service
+        - name: service.name
+          value: auth-service
+        - name: service.port
+          value: "5001"
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: dev
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 3
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 2m
+
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: auth-service-prod
+  namespace: argocd
+  labels:
+    app: auth-service
+    environment: production
+spec:
+  project: gitops-project
+  source:
+    repoURL: https://github.com/fastlanegaurav/gitops-argocd-k8s.git
+    targetRevision: HEAD
+    path: helm/microservices
+    helm:
+      releaseName: auth-service-prod
+      valueFiles:
+        - values.yaml
+        - values-prod.yaml
+      parameters:
+        - name: image.repository
+          value: fastlanegaurav/auth-service
+        - name: service.name
+          value: auth-service
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: production
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true
+  revisionHistoryLimit: 20

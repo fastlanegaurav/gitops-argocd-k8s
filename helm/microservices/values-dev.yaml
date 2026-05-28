@@ -1,0 +1,34 @@
+# Dev environment overrides
+replicaCount: 1
+
+image:
+  tag: "dev-latest"
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 200m
+    memory: 256Mi
+
+autoscaling:
+  enabled: false
+
+podDisruptionBudget:
+  enabled: false
+
+env:
+  - name: APP_ENV
+    value: "development"
+  - name: LOG_LEVEL
+    value: "debug"
+  - name: PORT
+    value: "5000"
+
+ingress:
+  hosts:
+    - host: backend.dev.local
+      paths:
+        - path: /
+          pathType: Prefix

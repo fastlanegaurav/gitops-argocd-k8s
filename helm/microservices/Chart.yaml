@@ -1,0 +1,28 @@
+apiVersion: v2
+name: microservices
+description: >
+  Production-grade Helm chart for deploying microservices with ArgoCD GitOps.
+  Includes Deployment, Service, Ingress, HPA, PDB, ServiceAccount, and ConfigMap.
+
+type: application
+version: 1.0.0
+appVersion: "latest"
+
+keywords:
+  - gitops
+  - argocd
+  - kubernetes
+  - microservices
+  - devops
+  - helm
+
+maintainers:
+  - name: Gaurav Kumar
+    email: gaurav04099@gmail.com
+    url: https://github.com/fastlanegaurav
+
+dependencies: []
+
+annotations:
+  category: microservices
+  licenses: MIT

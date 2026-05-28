@@ -1,0 +1,110 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: frontend-dev
+  namespace: argocd
+  labels:
+    app: frontend
+    environment: dev
+spec:
+  project: gitops-project
+  source:
+    repoURL: https://github.com/fastlanegaurav/gitops-argocd-k8s.git
+    targetRevision: HEAD
+    path: helm/microservices
+    helm:
+      releaseName: frontend-dev
+      valueFiles:
+        - values.yaml
+        - values-dev.yaml
+      parameters:
+        - name: image.repository
+          value: fastlanegaurav/frontend
+        - name: service.name
+          value: frontend
+        - name: ingress.hosts[0].host
+          value: frontend.dev.local
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: dev
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 3
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 2m
+
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: frontend-staging
+  namespace: argocd
+  labels:
+    app: frontend
+    environment: staging
+spec:
+  project: gitops-project
+  source:
+    repoURL: https://github.com/fastlanegaurav/gitops-argocd-k8s.git
+    targetRevision: HEAD
+    path: helm/microservices
+    helm:
+      releaseName: frontend-staging
+      valueFiles:
+        - values.yaml
+        - values-staging.yaml
+      parameters:
+        - name: image.repository
+          value: fastlanegaurav/frontend
+        - name: service.name
+          value: frontend
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: staging
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: frontend-prod
+  namespace: argocd
+  labels:
+    app: frontend
+    environment: production
+spec:
+  project: gitops-project
+  source:
+    repoURL: https://github.com/fastlanegaurav/gitops-argocd-k8s.git
+    targetRevision: HEAD
+    path: helm/microservices
+    helm:
+      releaseName: frontend-prod
+      valueFiles:
+        - values.yaml
+        - values-prod.yaml
+      parameters:
+        - name: image.repository
+          value: fastlanegaurav/frontend
+        - name: service.name
+          value: frontend
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: production
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true
+      - PruneLast=true
+  revisionHistoryLimit: 20

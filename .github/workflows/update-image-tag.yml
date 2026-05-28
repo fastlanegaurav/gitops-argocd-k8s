@@ -1,0 +1,65 @@
+name: GitOps — Promote Image to Staging & Production
+
+on:
+  workflow_dispatch:
+    inputs:
+      service:
+        description: Service to promote (backend/frontend/auth-service)
+        required: true
+        type: choice
+        options: [backend, frontend, auth-service]
+      image_tag:
+        description: Docker image tag to promote (e.g. sha-abc123)
+        required: true
+        type: string
+      environment:
+        description: Target environment
+        required: true
+        type: choice
+        options: [staging, production]
+
+jobs:
+  promote:
+    name: Promote ${{ inputs.service }} to ${{ inputs.environment }}
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Validate image tag exists
+        run: |
+          echo "Promoting ${{ inputs.service }}:${{ inputs.image_tag }} → ${{ inputs.environment }}"
+
+      - name: Update Helm values file
+        run: |
+          VALUES_FILE="helm/microservices/values-${{ inputs.environment }}.yaml"
+          TAG="${{ inputs.image_tag }}"
+
+          sed -i "s/tag: .*/tag: \"${TAG}\"/" ${VALUES_FILE}
+
+          echo "Updated ${VALUES_FILE} with tag: ${TAG}"
+          cat ${VALUES_FILE} | grep "tag:"
+
+      - name: Commit and push GitOps change
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add helm/microservices/values-${{ inputs.environment }}.yaml
+          git commit -m "feat(gitops): promote ${{ inputs.service }} to ${{ inputs.environment }} with tag ${{ inputs.image_tag }}
+
+          Promoted by: ${{ github.actor }}
+          Trigger: manual workflow dispatch
+          Environment: ${{ inputs.environment }}
+          Image tag: ${{ inputs.image_tag }}"
+
+          git push origin main
+
+      - name: ArgoCD will auto-sync
+        run: |
+          echo "✅ Git updated. ArgoCD will detect the diff and sync within 3 minutes."
+          echo "Monitor at: ArgoCD UI → Applications → ${{ inputs.service }}-${{ inputs.environment }}"
