@@ -70,3 +70,5 @@ htmlcov/
 
 # ArgoCD local
 argocd-local-config/
+ai-agents/.env
+ai-agents/venv/
