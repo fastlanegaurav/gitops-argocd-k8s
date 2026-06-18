@@ -1,4 +1,4 @@
-🤖 AI-Powered GitOps Copilot
+##🤖 AI-Powered GitOps Copilot
 
 ### Autonomous Incident Investigation & Recovery for Kubernetes
 
